@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules
+dist
+coverage
+
+# Secrets and local databases
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# Helper files from our inspection, not part of the project
+project-dump.txt
+verify-report*.txt
+state.txt
+current-files.txt
