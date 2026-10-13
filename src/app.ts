@@ -8,6 +8,8 @@ import "./events/auth.events"; // registers the event listeners (Day 3)
 import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
 
 const app = express();
 
@@ -33,6 +35,14 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     environment: config.NODE_ENV,
   });
+});
+
+// === API DOCS (Day 4) ===
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Also serve the raw JSON spec (useful for code generators)
+app.get("/api-docs.json", (req, res) => {
+  res.json(swaggerSpec);
 });
 
 // === API v1 ===
