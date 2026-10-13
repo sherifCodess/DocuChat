@@ -43,7 +43,7 @@ const router = Router();
 router.post("/register", validate(registerSchema), async (req, res, next) => {
   try {
     const user = await authService.register(req.body);
-    res.status(201).json({ user });
+    res.status(201).json({ success: true, data: user });
   } catch (error) {
     next(error);
   }

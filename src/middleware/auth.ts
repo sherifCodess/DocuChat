@@ -10,11 +10,18 @@ declare global {
   }
 }
 
+function unauthorized(res: Response, message: string) {
+  return res.status(401).json({
+    success: false,
+    error: { code: "UNAUTHORIZED", message },
+  });
+}
+
 export function authenticate(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "No token provided" });
+    return unauthorized(res, "No token provided");
   }
 
   const token = header.split(" ")[1];
@@ -24,7 +31,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
     // Make sure it's an access token, not a refresh token
     if (payload.type !== "access") {
-      return res.status(401).json({ error: "Invalid token type" });
+      return unauthorized(res, "Invalid token type");
     }
 
     // Attach user context to the request
@@ -32,8 +39,8 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     next();
   } catch (error: any) {
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expired" });
+      return unauthorized(res, "Token expired");
     }
-    return res.status(401).json({ error: "Invalid token" });
+    return unauthorized(res, "Invalid token");
   }
 }
