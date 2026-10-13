@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { idSchema } from "./id.validator";
 
 export const createDocumentSchema = z.object({
   body: z.object({
@@ -17,6 +18,6 @@ export const listDocumentsSchema = z.object({
 
 export const documentParamsSchema = z.object({
   params: z.object({
-    id: z.string().uuid("Invalid document ID"),
+    id: idSchema("Invalid document ID"),
   }),
 });
