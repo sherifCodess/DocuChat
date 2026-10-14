@@ -10,6 +10,7 @@ import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 
@@ -53,6 +54,14 @@ app.use("/api/v1/conversations", authenticate, conversationRoutes);
 // When v2 exists:
 // app.use('/api/v2/documents', documentRoutesV2);
 
-// Day 5 adds here, in this order: the 404 handler, then errorHandler (must be last)
+// 404 handler for unknown routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: { code: "NOT_FOUND", message: `Route ${req.path} not found` },
+  });
+});
 
+// Global error handler (MUST be last)
+app.use(errorHandler);
 export default app;
