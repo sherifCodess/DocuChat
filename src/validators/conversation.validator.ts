@@ -20,3 +20,9 @@ export const sendMessageSchema = z.object({
     documentId: idSchema("Invalid document ID").optional(),
   }),
 });
+
+export const conversationParamsSchema = z.object({
+  params: z.object({
+    id: idSchema("Invalid conversation ID"),
+  }),
+});

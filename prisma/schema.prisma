@@ -50,6 +50,7 @@ model Document {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversations Conversation[]
+  messages Message[]
 
   @@index([userId])
   @@index([status])
@@ -66,6 +67,7 @@ model Conversation {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   document Document? @relation(fields: [documentId], references: [id])
+  messages Message[]
 
   @@index([userId])
 }
@@ -82,4 +84,18 @@ model Conversation {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  documentId     String?
+  role           String
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  document     Document?    @relation(fields: [documentId], references: [id])
+
+  @@index([conversationId])
 }
