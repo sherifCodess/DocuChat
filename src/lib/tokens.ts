@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
@@ -21,10 +22,12 @@ export function generateAccessToken(user: { id: string; tier: string }) {
 }
 
 export function generateRefreshToken(user: { id: string; tier: string }) {
+  // jwtid makes every refresh token unique, even for the same user in the same second.
+  // Refresh tokens are stored (hashed) in a unique column, so identical tokens would collide.
   return jwt.sign(
     { sub: user.id, role: user.tier, type: "refresh" },
     REFRESH_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "7d", jwtid: crypto.randomUUID() },
   );
 }
 

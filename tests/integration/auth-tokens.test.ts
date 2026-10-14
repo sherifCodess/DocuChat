@@ -9,15 +9,12 @@ beforeEach(async () => {
   await resetDatabase();
 });
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const refresh = (refreshToken: string) =>
   request(app).post("/api/v1/auth/refresh").send({ refreshToken });
 
 describe("token lifecycle", () => {
   it("rotates the refresh token and rejects the old one", async () => {
     const { refreshToken } = await createAndLogin("user@example.com");
-    // JWTs carry second-level timestamps, so wait to get a different token.
-    await sleep(1100);
     const rotated = await refresh(refreshToken);
     expect(rotated.status).toBe(200);
     expect(rotated.body.refreshToken).not.toBe(refreshToken);
