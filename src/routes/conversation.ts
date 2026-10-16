@@ -1,5 +1,7 @@
 import { Router, Response } from "express";
 import * as conversationService from "../services/conversation.service";
+import { authenticate } from "../middleware/auth";
+import { requirePermission } from "../middleware/authorize";
 import { validate } from "../middleware/validate";
 import {
   createConversationSchema,
@@ -9,7 +11,7 @@ import {
 
 const router = Router();
 
-// authenticate is applied where this router is mounted in app.ts.
+router.use(authenticate);
 
 function notFound(res: Response) {
   return res.status(404).json({
@@ -31,6 +33,7 @@ function invalidDocument(res: Response) {
  * /conversations:
  *   get:
  *     summary: List user's conversations
+ *     description: Requires the conversations:read permission.
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
@@ -39,21 +42,28 @@ function invalidDocument(res: Response) {
  *         description: List of conversations, newest first
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the conversations:read permission
  */
-router.get("/", async (req, res, next) => {
-  try {
-    const data = await conversationService.listConversations(req.user!.id);
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get(
+  "/",
+  requirePermission("conversations:read"),
+  async (req, res, next) => {
+    try {
+      const data = await conversationService.listConversations(req.user!.id);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
  * /conversations:
  *   post:
  *     summary: Start a new conversation
+ *     description: Requires the conversations:create permission.
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
@@ -76,27 +86,35 @@ router.get("/", async (req, res, next) => {
  *         description: Validation error
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the conversations:create permission
  *       422:
  *         description: The referenced document doesn't exist
  */
-router.post("/", validate(createConversationSchema), async (req, res, next) => {
-  try {
-    const result = await conversationService.createConversation(
-      req.user!.id,
-      req.body,
-    );
-    if (result === "invalid_document") return invalidDocument(res);
-    res.status(201).json({ success: true, data: result });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post(
+  "/",
+  requirePermission("conversations:create"),
+  validate(createConversationSchema),
+  async (req, res, next) => {
+    try {
+      const result = await conversationService.createConversation(
+        req.user!.id,
+        req.body,
+      );
+      if (result === "invalid_document") return invalidDocument(res);
+      res.status(201).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
  * /conversations/{id}/messages:
  *   get:
  *     summary: Get messages in a conversation
+ *     description: Requires the conversations:read permission.
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
@@ -113,11 +131,14 @@ router.post("/", validate(createConversationSchema), async (req, res, next) => {
  *         description: Invalid conversation ID
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the conversations:read permission
  *       404:
  *         description: Not found, or not owned by the user
  */
 router.get(
   "/:id/messages",
+  requirePermission("conversations:read"),
   validate(conversationParamsSchema),
   async (req, res, next) => {
     try {
@@ -138,6 +159,7 @@ router.get(
  * /conversations/{id}/messages:
  *   post:
  *     summary: Send a message (the AI reply arrives in Week 4)
+ *     description: Requires the conversations:create permission.
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
@@ -167,6 +189,8 @@ router.get(
  *         description: Validation error
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the conversations:create permission
  *       404:
  *         description: Conversation not found, or not owned by the user
  *       422:
@@ -174,6 +198,7 @@ router.get(
  */
 router.post(
   "/:id/messages",
+  requirePermission("conversations:create"),
   validate(sendMessageSchema),
   async (req, res, next) => {
     try {

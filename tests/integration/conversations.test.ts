@@ -89,3 +89,51 @@ describe("conversations", () => {
     expect(unknown.status).toBe(404);
   });
 });
+
+describe("conversations: permissions", () => {
+  let viewer: string;
+  let noRole: string;
+
+  beforeEach(async () => {
+    viewer = (await createAndLogin("viewer@example.com", "viewer")).accessToken;
+    noRole = (await createAndLogin("norole@example.com", null)).accessToken;
+  });
+
+  it("lets a viewer read but not start conversations or send messages", async () => {
+    const id = (await createConversation(owner)).body.data.id;
+
+    const list = await request(app).get("/api/v1/conversations").set(bearer(viewer));
+    expect(list.status).toBe(200);
+
+    // Reading someone else's conversation is still a 404, not a 403
+    const read = await request(app)
+      .get(`/api/v1/conversations/${id}/messages`)
+      .set(bearer(viewer));
+    expect(read.status).toBe(404);
+
+    const create = await createConversation(viewer);
+    expect(create.status).toBe(403);
+    expect(create.body.error.code).toBe("FORBIDDEN");
+
+    const send = await request(app)
+      .post(`/api/v1/conversations/${id}/messages`)
+      .set(bearer(viewer))
+      .send({ content: "hi" });
+    expect(send.status).toBe(403);
+  });
+
+  it("gives a user with no role a 403 on every conversation route", async () => {
+    const id = (await createConversation(owner)).body.data.id;
+    const calls = [
+      request(app).get("/api/v1/conversations").set(bearer(noRole)),
+      createConversation(noRole),
+      request(app).get(`/api/v1/conversations/${id}/messages`).set(bearer(noRole)),
+      request(app)
+        .post(`/api/v1/conversations/${id}/messages`)
+        .set(bearer(noRole))
+        .send({ content: "hi" }),
+    ];
+    const results = await Promise.all(calls);
+    expect(results.map((r) => r.status)).toEqual([403, 403, 403, 403]);
+  });
+});

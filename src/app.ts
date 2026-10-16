@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { logger } from "./lib/logger";
-import { authenticate } from "./middleware/auth";
 import "./events/auth.events"; // registers the event listeners (Day 3)
 import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
@@ -49,7 +48,7 @@ app.get("/api-docs.json", (req, res) => {
 // === API v1 ===
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents", documentRoutes);
-app.use("/api/v1/conversations", authenticate, conversationRoutes);
+app.use("/api/v1/conversations", conversationRoutes);
 
 // When v2 exists:
 // app.use('/api/v2/documents', documentRoutesV2);
