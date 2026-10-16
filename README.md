@@ -26,11 +26,11 @@ npm run dev
 
 ## Scripts
 
-| Script | What it does |
-| --- | --- |
-| `npm run dev` | Start with auto-reload |
-| `npm start` | Start the server |
-| `npm test` | Run unit and integration tests |
+| Script                  | What it does                     |
+| ----------------------- | -------------------------------- |
+| `npm run dev`           | Start with auto-reload           |
+| `npm start`             | Start the server                 |
+| `npm test`              | Run unit and integration tests   |
 | `npm run test:coverage` | Run tests with a coverage report |
 
 ## Tests
@@ -61,20 +61,20 @@ npm test
 
 All endpoints are under `/api/v1`. Every endpoint except `/auth/*` requires `Authorization: Bearer <accessToken>`.
 
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/auth/register` | Create an account |
-| POST | `/auth/login` | Get access and refresh tokens |
-| POST | `/auth/refresh` | Rotate the refresh token |
-| POST | `/auth/logout` | Revoke a refresh token |
-| GET | `/documents` | List your documents (`page`, `limit`, `status`) |
-| POST | `/documents` | Create a document |
-| GET | `/documents/:id` | Get a document |
-| DELETE | `/documents/:id` | Delete a document (soft delete) |
-| GET | `/conversations` | List your conversations |
-| POST | `/conversations` | Start a conversation |
-| GET | `/conversations/:id/messages` | Get messages |
-| POST | `/conversations/:id/messages` | Send a message |
+| Method | Path                          | Description                                     |
+| ------ | ----------------------------- | ----------------------------------------------- |
+| POST   | `/auth/register`              | Create an account                               |
+| POST   | `/auth/login`                 | Get access and refresh tokens                   |
+| POST   | `/auth/refresh`               | Rotate the refresh token                        |
+| POST   | `/auth/logout`                | Revoke a refresh token                          |
+| GET    | `/documents`                  | List your documents (`page`, `limit`, `status`) |
+| POST   | `/documents`                  | Create a document                               |
+| GET    | `/documents/:id`              | Get a document                                  |
+| DELETE | `/documents/:id`              | Delete a document (soft delete)                 |
+| GET    | `/conversations`              | List your conversations                         |
+| POST   | `/conversations`              | Start a conversation                            |
+| GET    | `/conversations/:id/messages` | Get messages                                    |
+| POST   | `/conversations/:id/messages` | Send a message                                  |
 
 Responses use `{ success, data }` for success and `{ success: false, error: { code, message } }` for errors. The auth token endpoints return tokens at the top level.
 
@@ -82,3 +82,6 @@ Responses use `{ success, data }` for success and `{ success: false, error: { co
 
 - `.env`, `.env.test` and the `*.db` files are never committed.
 - IDs are `cuid()` by default. Endpoints also accept legacy UUIDs.
+
+sed -i '/^npx prisma migrate dev$/a # Seed roles, permissions and the admin user (set ADMIN_EMAIL and ADMIN_PASSWORD in .env first)\nnpx prisma db seed' README.md
+grep -n -B1 "prisma db seed" README.md
