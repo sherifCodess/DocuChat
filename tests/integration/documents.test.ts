@@ -5,13 +5,19 @@ import { resetDatabase } from "../helpers/setup";
 import { createAndLogin, bearer } from "../helpers/auth";
 
 const UNKNOWN_ID = "cmv6iwsd30000l8izshguar04";
-let owner: string;
-let other: string;
+let owner: string; // member
+let other: string; // member
+let admin: string;
+let viewer: string;
+let noRole: string;
 
 beforeEach(async () => {
   await resetDatabase();
   owner = (await createAndLogin("owner@example.com")).accessToken;
   other = (await createAndLogin("other@example.com")).accessToken;
+  admin = (await createAndLogin("admin@example.com", "admin")).accessToken;
+  viewer = (await createAndLogin("viewer@example.com", "viewer")).accessToken;
+  noRole = (await createAndLogin("norole@example.com", null)).accessToken;
 });
 
 const createDoc = (token: string, title = "Doc") =>
@@ -38,7 +44,7 @@ describe("documents", () => {
     expect(fields).toEqual(expect.arrayContaining(["title", "content"]));
   });
 
-  it("returns own document, 404 for another user's", async () => {
+  it("returns own document, 404 for another member's", async () => {
     const id = (await createDoc(owner)).body.data.id;
     const mine = await request(app).get(`/api/v1/documents/${id}`).set(bearer(owner));
     expect(mine.status).toBe(200);
@@ -72,18 +78,62 @@ describe("documents", () => {
       .set(bearer(owner));
     expect(tooBig.status).toBe(400);
   });
+});
 
-  it("soft deletes: gone from get and list, repeat delete is 404", async () => {
+describe("documents: permissions", () => {
+  it("lets a viewer read documents but not create them", async () => {
+    const list = await request(app).get("/api/v1/documents").set(bearer(viewer));
+    expect(list.status).toBe(200);
+    const create = await createDoc(viewer);
+    expect(create.status).toBe(403);
+    expect(create.body.error.code).toBe("FORBIDDEN");
+  });
+
+  it("stops a member from deleting, and the document survives", async () => {
     const id = (await createDoc(owner)).body.data.id;
-    const notOwner = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(other));
-    expect(notOwner.status).toBe(404);
     const del = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(owner));
+    expect(del.status).toBe(403);
+    const get = await request(app).get(`/api/v1/documents/${id}`).set(bearer(owner));
+    expect(get.status).toBe(200);
+  });
+
+  it("gives a user with no role a 403 on every document route", async () => {
+    const id = (await createDoc(owner)).body.data.id;
+    const calls = [
+      request(app).get("/api/v1/documents").set(bearer(noRole)),
+      request(app).post("/api/v1/documents").set(bearer(noRole)).send({ title: "x", content: "y" }),
+      request(app).get(`/api/v1/documents/${id}`).set(bearer(noRole)),
+      request(app).delete(`/api/v1/documents/${id}`).set(bearer(noRole)),
+    ];
+    const results = await Promise.all(calls);
+    expect(results.map((r) => r.status)).toEqual([403, 403, 403, 403]);
+  });
+
+  it("lets an admin read another user's document, but not a member", async () => {
+    const id = (await createDoc(owner)).body.data.id;
+    const asAdmin = await request(app).get(`/api/v1/documents/${id}`).set(bearer(admin));
+    expect(asAdmin.status).toBe(200);
+    const asMember = await request(app).get(`/api/v1/documents/${id}`).set(bearer(other));
+    expect(asMember.status).toBe(404);
+    // The list still shows only your own documents
+    const adminList = await request(app).get("/api/v1/documents").set(bearer(admin));
+    expect(adminList.body.meta.total).toBe(0);
+  });
+
+  it("lets an admin soft delete any document", async () => {
+    const id = (await createDoc(owner)).body.data.id;
+    const del = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));
     expect(del.status).toBe(200);
-    const again = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(owner));
+    const again = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));
     expect(again.status).toBe(404);
     const get = await request(app).get(`/api/v1/documents/${id}`).set(bearer(owner));
     expect(get.status).toBe(404);
     const list = await request(app).get("/api/v1/documents").set(bearer(owner));
     expect(list.body.meta.total).toBe(0);
+  });
+
+  it("returns 404 when an admin deletes a document that doesn't exist", async () => {
+    const del = await request(app).delete(`/api/v1/documents/${UNKNOWN_ID}`).set(bearer(admin));
+    expect(del.status).toBe(404);
   });
 });

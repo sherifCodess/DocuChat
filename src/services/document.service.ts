@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { getUserPermissions } from "./user.service";
 
 export async function createDocument(
   userId: string,
@@ -30,14 +31,27 @@ export async function listDocuments(
   return { items, total };
 }
 
+// Returns null if the document doesn't exist, is deleted, or the user may not see it.
+// Not-yours and not-found look identical on purpose: a 403 would confirm the document exists.
 export async function getDocument(userId: string, id: string) {
-  return prisma.document.findFirst({ where: { id, userId, deletedAt: null } });
+  const doc = await prisma.document.findFirst({
+    where: { id, deletedAt: null },
+  });
+  if (!doc) return null;
+
+  // Resource ownership: you only see your own documents, except admins.
+  if (doc.userId !== userId) {
+    const permissions = await getUserPermissions(userId);
+    if (!permissions.has("users:manage")) return null;
+  }
+  return doc;
 }
 
-// Soft delete: returns false if the document doesn't exist, isn't yours, or is already deleted.
-export async function deleteDocument(userId: string, id: string) {
+// Soft delete. The route requires documents:delete (admin only), so there is no ownership check.
+// Returns false if the document doesn't exist or is already deleted.
+export async function deleteDocument(id: string) {
   const result = await prisma.document.updateMany({
-    where: { id, userId, deletedAt: null },
+    where: { id, deletedAt: null },
     data: { deletedAt: new Date() },
   });
   return result.count > 0;

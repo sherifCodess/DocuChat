@@ -1,5 +1,7 @@
 import { Router, Response } from "express";
 import * as documentService from "../services/document.service";
+import { authenticate } from "../middleware/auth";
+import { requirePermission } from "../middleware/authorize";
 import { validate } from "../middleware/validate";
 import {
   createDocumentSchema,
@@ -9,7 +11,7 @@ import {
 
 const router = Router();
 
-// authenticate is applied where this router is mounted in app.ts.
+router.use(authenticate);
 
 function notFound(res: Response) {
   return res.status(404).json({
@@ -23,6 +25,7 @@ function notFound(res: Response) {
  * /documents:
  *   get:
  *     summary: List user's documents
+ *     description: Requires the documents:read permission.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -49,30 +52,37 @@ function notFound(res: Response) {
  *         description: Validation error
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the documents:read permission
  */
-router.get("/", validate(listDocumentsSchema), async (req, res, next) => {
-  try {
-    const { page, limit, status } = req.query as unknown as {
-      page: number;
-      limit: number;
-      status?: string;
-    };
-    const { items, total } = await documentService.listDocuments(req.user!.id, {
-      page,
-      limit,
-      status,
-    });
-    res.json({ success: true, data: items, meta: { page, limit, total } });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get(
+  "/",
+  requirePermission("documents:read"),
+  validate(listDocumentsSchema),
+  async (req, res, next) => {
+    try {
+      const { page, limit, status } = req.query as unknown as {
+        page: number;
+        limit: number;
+        status?: string;
+      };
+      const { items, total } = await documentService.listDocuments(
+        req.user!.id,
+        { page, limit, status },
+      );
+      res.json({ success: true, data: items, meta: { page, limit, total } });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
  * /documents:
  *   post:
  *     summary: Create a document
+ *     description: Requires the documents:create permission.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -96,21 +106,29 @@ router.get("/", validate(listDocumentsSchema), async (req, res, next) => {
  *         description: Validation error
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the documents:create permission
  */
-router.post("/", validate(createDocumentSchema), async (req, res, next) => {
-  try {
-    const doc = await documentService.createDocument(req.user!.id, req.body);
-    res.status(201).json({ success: true, data: doc });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post(
+  "/",
+  requirePermission("documents:create"),
+  validate(createDocumentSchema),
+  async (req, res, next) => {
+    try {
+      const doc = await documentService.createDocument(req.user!.id, req.body);
+      res.status(201).json({ success: true, data: doc });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
  * /documents/{id}:
  *   get:
  *     summary: Get a document by ID
+ *     description: Requires the documents:read permission. You can only see your own documents; admins can see all.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -127,27 +145,35 @@ router.post("/", validate(createDocumentSchema), async (req, res, next) => {
  *         description: Invalid document ID
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the documents:read permission
  *       404:
- *         description: Not found, or not owned by the user
+ *         description: Not found, or not visible to the user
  */
-router.get("/:id", validate(documentParamsSchema), async (req, res, next) => {
-  try {
-    const doc = await documentService.getDocument(
-      req.user!.id,
-      req.params.id as string,
-    );
-    if (!doc) return notFound(res);
-    res.json({ success: true, data: doc });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get(
+  "/:id",
+  requirePermission("documents:read"),
+  validate(documentParamsSchema),
+  async (req, res, next) => {
+    try {
+      const doc = await documentService.getDocument(
+        req.user!.id,
+        req.params.id as string,
+      );
+      if (!doc) return notFound(res);
+      res.json({ success: true, data: doc });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger
  * /documents/{id}:
  *   delete:
- *     summary: Delete a document (soft delete)
+ *     summary: Delete a document (soft delete, admin only)
+ *     description: Requires the documents:delete permission, which only admins have. Admins can delete any document.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -164,16 +190,19 @@ router.get("/:id", validate(documentParamsSchema), async (req, res, next) => {
  *         description: Invalid document ID
  *       401:
  *         description: Not authenticated
+ *       403:
+ *         description: Missing the documents:delete permission
  *       404:
- *         description: Not found, not owned by the user, or already deleted
+ *         description: Not found, or already deleted
  */
 router.delete(
   "/:id",
+  requirePermission("documents:delete"),
   validate(documentParamsSchema),
   async (req, res, next) => {
     try {
       const id = req.params.id as string;
-      const deleted = await documentService.deleteDocument(req.user!.id, id);
+      const deleted = await documentService.deleteDocument(id);
       if (!deleted) return notFound(res);
       res.json({ success: true, data: { id } });
     } catch (error) {

@@ -48,7 +48,7 @@ app.get("/api-docs.json", (req, res) => {
 
 // === API v1 ===
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/documents", authenticate, documentRoutes);
+app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/conversations", authenticate, conversationRoutes);
 
 // When v2 exists:
