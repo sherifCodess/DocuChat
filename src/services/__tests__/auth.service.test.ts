@@ -10,6 +10,8 @@ vi.mock("../../lib/prisma", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
     },
+    role: { findFirst: vi.fn() },
+    userRole: { create: vi.fn() },
     refreshToken: {
       create: vi.fn(),
       findUnique: vi.fn(),
