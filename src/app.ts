@@ -4,9 +4,11 @@ import cors from "cors";
 import helmet from "helmet";
 import { logger } from "./lib/logger";
 import "./events/auth.events"; // registers the event listeners (Day 3)
+import "./events/admin.events";
 import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";
+import adminRoutes from "./routes/admin";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -49,6 +51,7 @@ app.get("/api-docs.json", (req, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/conversations", conversationRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 // When v2 exists:
 // app.use('/api/v2/documents', documentRoutesV2);
