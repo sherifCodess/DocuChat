@@ -43,3 +43,13 @@ export async function createTestUser(
   }
   return user;
 }
+
+// Event listeners run after the response is sent, so wait for the log row to appear.
+export async function waitForLog(action: string) {
+  for (let i = 0; i < 40; i++) {
+    const row = await prisma.usageLog.findFirst({ where: { action } });
+    if (row) return row;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return null;
+}

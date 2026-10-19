@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import * as documentService from "../services/document.service";
 import { authenticate } from "../middleware/auth";
 import { requirePermission } from "../middleware/authorize";
@@ -13,19 +13,12 @@ const router = Router();
 
 router.use(authenticate);
 
-function notFound(res: Response) {
-  return res.status(404).json({
-    success: false,
-    error: { code: "NOT_FOUND", message: "Document not found" },
-  });
-}
-
 /**
  * @swagger
  * /documents:
  *   get:
  *     summary: List user's documents
- *     description: Requires the documents:read permission.
+ *     description: Requires the documents:read permission. Soft-deleted documents are never listed.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -45,9 +38,27 @@ function notFound(res: Response) {
  *         schema:
  *           type: string
  *           enum: [pending, processing, ready, failed]
+ *       - in: query
+ *         name: search
+ *         description: Matches document titles
+ *         schema:
+ *           type: string
+ *           maxLength: 200
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, title, chunkCount]
+ *           default: createdAt
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
  *     responses:
  *       200:
- *         description: List of documents, with pagination meta
+ *         description: List of documents (without content), with pagination meta
  *       400:
  *         description: Validation error
  *       401:
@@ -61,16 +72,19 @@ router.get(
   validate(listDocumentsSchema),
   async (req, res, next) => {
     try {
-      const { page, limit, status } = req.query as unknown as {
+      const query = req.query as unknown as {
         page: number;
         limit: number;
         status?: string;
+        search?: string;
+        sortBy: "createdAt" | "title" | "chunkCount";
+        sortOrder: "asc" | "desc";
       };
-      const { items, total } = await documentService.listDocuments(
+      const { data, meta } = await documentService.listDocuments(
         req.user!.id,
-        { page, limit, status },
+        query,
       );
-      res.json({ success: true, data: items, meta: { page, limit, total } });
+      res.json({ success: true, data, meta });
     } catch (error) {
       next(error);
     }
@@ -160,7 +174,6 @@ router.get(
         req.user!.id,
         req.params.id as string,
       );
-      if (!doc) return notFound(res);
       res.json({ success: true, data: doc });
     } catch (error) {
       next(error);
@@ -173,7 +186,7 @@ router.get(
  * /documents/{id}:
  *   delete:
  *     summary: Delete a document (soft delete, admin only)
- *     description: Requires the documents:delete permission, which only admins have. Admins can delete any document.
+ *     description: Requires the documents:delete permission, which only admins have. Admins can delete any document. The row is kept, with deletedAt and deletedBy set.
  *     tags: [Documents]
  *     security:
  *       - bearerAuth: []
@@ -202,8 +215,7 @@ router.delete(
   async (req, res, next) => {
     try {
       const id = req.params.id as string;
-      const deleted = await documentService.deleteDocument(id);
-      if (!deleted) return notFound(res);
+      await documentService.deleteDocument(id, req.user!.id);
       res.json({ success: true, data: { id } });
     } catch (error) {
       next(error);
