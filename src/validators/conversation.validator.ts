@@ -8,6 +8,13 @@ export const createConversationSchema = z.object({
   }),
 });
 
+export const listConversationsSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  }),
+});
+
 export const sendMessageSchema = z.object({
   params: z.object({
     id: idSchema("Invalid conversation ID"),

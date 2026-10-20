@@ -59,7 +59,13 @@ describe("conversations", () => {
       .get(`/api/v1/conversations/${id}/messages`)
       .set(bearer(owner));
     expect(res.status).toBe(200);
-    expect(res.body.data.map((m: any) => m.content)).toEqual(["First", "Second"]);
+    expect(res.body.data.map((m: any) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
+    expect(res.body.data.map((m: any) => m.content)).toEqual([
+      "First",
+      "AI response placeholder (Week 4)",
+      "Second",
+      "AI response placeholder (Week 4)",
+    ]);
     expect(res.body.data[0].role).toBe("user");
   });
 

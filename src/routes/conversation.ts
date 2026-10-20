@@ -1,10 +1,11 @@
-import { Router, Response } from "express";
+import { Router } from "express";
 import * as conversationService from "../services/conversation.service";
 import { authenticate } from "../middleware/auth";
 import { requirePermission } from "../middleware/authorize";
 import { validate } from "../middleware/validate";
 import {
   createConversationSchema,
+  listConversationsSchema,
   conversationParamsSchema,
   sendMessageSchema,
 } from "../validators/conversation.validator";
@@ -13,33 +14,31 @@ const router = Router();
 
 router.use(authenticate);
 
-function notFound(res: Response) {
-  return res.status(404).json({
-    success: false,
-    error: { code: "NOT_FOUND", message: "Conversation not found" },
-  });
-}
-
-// Day 4: 422 means valid JSON that breaks a business rule (e.g. the referenced document doesn't exist).
-function invalidDocument(res: Response) {
-  return res.status(422).json({
-    success: false,
-    error: { code: "UNPROCESSABLE_ENTITY", message: "Document not found" },
-  });
-}
-
 /**
  * @swagger
  * /conversations:
  *   get:
  *     summary: List user's conversations
- *     description: Requires the conversations:read permission.
+ *     description: Requires the conversations:read permission. Each item has the latest message and the message count. Most recently active first.
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
- *         description: List of conversations, newest first
+ *         description: Conversations with pagination meta
+ *       400:
+ *         description: Validation error
  *       401:
  *         description: Not authenticated
  *       403:
@@ -48,10 +47,18 @@ function invalidDocument(res: Response) {
 router.get(
   "/",
   requirePermission("conversations:read"),
+  validate(listConversationsSchema),
   async (req, res, next) => {
     try {
-      const data = await conversationService.listConversations(req.user!.id);
-      res.json({ success: true, data });
+      const { page, limit } = req.query as unknown as {
+        page: number;
+        limit: number;
+      };
+      const { data, meta } = await conversationService.listConversations(
+        req.user!.id,
+        { page, limit },
+      );
+      res.json({ success: true, data, meta });
     } catch (error) {
       next(error);
     }
@@ -97,12 +104,11 @@ router.post(
   validate(createConversationSchema),
   async (req, res, next) => {
     try {
-      const result = await conversationService.createConversation(
+      const conversation = await conversationService.createConversation(
         req.user!.id,
         req.body,
       );
-      if (result === "invalid_document") return invalidDocument(res);
-      res.status(201).json({ success: true, data: result });
+      res.status(201).json({ success: true, data: conversation });
     } catch (error) {
       next(error);
     }
@@ -146,7 +152,6 @@ router.get(
         req.user!.id,
         req.params.id as string,
       );
-      if (!data) return notFound(res);
       res.json({ success: true, data });
     } catch (error) {
       next(error);
@@ -158,8 +163,8 @@ router.get(
  * @swagger
  * /conversations/{id}/messages:
  *   post:
- *     summary: Send a message (the AI reply arrives in Week 4)
- *     description: Requires the conversations:create permission.
+ *     summary: Send a message
+ *     description: Requires the conversations:create permission. Stores your message and a placeholder assistant reply in one transaction (the real AI reply arrives in Week 4).
  *     tags: [Conversations]
  *     security:
  *       - bearerAuth: []
@@ -184,7 +189,7 @@ router.get(
  *                 type: string
  *     responses:
  *       201:
- *         description: Message stored
+ *         description: Both messages stored (userMessage and assistantMessage)
  *       400:
  *         description: Validation error
  *       401:
@@ -207,8 +212,6 @@ router.post(
         req.params.id as string,
         req.body,
       );
-      if (result === "conversation_not_found") return notFound(res);
-      if (result === "invalid_document") return invalidDocument(res);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       next(error);
