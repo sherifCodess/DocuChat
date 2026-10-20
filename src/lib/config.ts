@@ -29,7 +29,8 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
 
   // Redis (needed from Week 3 onward)
-  REDIS_URL: z.string().optional(),
+  REDIS_HOST: z.string().default("localhost"),
+  REDIS_PORT: z.coerce.number().default(6379),
 });
 
 // Validate process.env against the schema

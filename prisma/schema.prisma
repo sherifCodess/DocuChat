@@ -51,6 +51,8 @@ model Document {
   deletedBy String?
   filename String?
   chunkCount Int @default(0)
+  error String?
+  chunks Chunk[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversations Conversation[]
@@ -152,4 +154,16 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
+}
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  index      Int
+  content    String
+  tokenCount Int
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
