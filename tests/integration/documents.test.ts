@@ -29,9 +29,10 @@ const createDoc = (token: string, title = "Doc") =>
 describe("documents", () => {
   it("creates a document with status pending", async () => {
     const res = await createDoc(owner);
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(202);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.status).toBe("pending");
+    expect(res.body.data.document.status).toBe("pending");
+    expect(res.body.data.jobId).toBe("test-job-id");
   });
 
   it("lists every missing field on invalid input", async () => {
@@ -45,7 +46,7 @@ describe("documents", () => {
   });
 
   it("returns own document, 404 for another member's", async () => {
-    const id = (await createDoc(owner)).body.data.id;
+    const id = (await createDoc(owner)).body.data.document.id;
     const mine = await request(app).get(`/api/v1/documents/${id}`).set(bearer(owner));
     expect(mine.status).toBe(200);
     const theirs = await request(app).get(`/api/v1/documents/${id}`).set(bearer(other));
@@ -90,7 +91,7 @@ describe("documents: permissions", () => {
   });
 
   it("stops a member from deleting, and the document survives", async () => {
-    const id = (await createDoc(owner)).body.data.id;
+    const id = (await createDoc(owner)).body.data.document.id;
     const del = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(owner));
     expect(del.status).toBe(403);
     const get = await request(app).get(`/api/v1/documents/${id}`).set(bearer(owner));
@@ -98,7 +99,7 @@ describe("documents: permissions", () => {
   });
 
   it("gives a user with no role a 403 on every document route", async () => {
-    const id = (await createDoc(owner)).body.data.id;
+    const id = (await createDoc(owner)).body.data.document.id;
     const calls = [
       request(app).get("/api/v1/documents").set(bearer(noRole)),
       request(app).post("/api/v1/documents").set(bearer(noRole)).send({ title: "x", content: "y" }),
@@ -110,7 +111,7 @@ describe("documents: permissions", () => {
   });
 
   it("lets an admin read another user's document, but not a member", async () => {
-    const id = (await createDoc(owner)).body.data.id;
+    const id = (await createDoc(owner)).body.data.document.id;
     const asAdmin = await request(app).get(`/api/v1/documents/${id}`).set(bearer(admin));
     expect(asAdmin.status).toBe(200);
     const asMember = await request(app).get(`/api/v1/documents/${id}`).set(bearer(other));
@@ -121,7 +122,7 @@ describe("documents: permissions", () => {
   });
 
   it("lets an admin soft delete any document", async () => {
-    const id = (await createDoc(owner)).body.data.id;
+    const id = (await createDoc(owner)).body.data.document.id;
     const del = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));
     expect(del.status).toBe(200);
     const again = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));

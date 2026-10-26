@@ -34,7 +34,7 @@ const createDoc = async (token: string, title = "Doc") =>
       .post("/api/v1/documents")
       .set(bearer(token))
       .send({ title, content: "Hello" })
-  ).body.data.id as string;
+  ).body.data.document.id as string;
 
 describe("conversation list", () => {
   it("returns the latest message, the count, and the most recently active first", async () => {

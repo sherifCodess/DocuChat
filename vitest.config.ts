@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    setupFiles: ["./tests/helpers/env.ts"],
+    setupFiles: ["./tests/helpers/env.ts", "./tests/helpers/mocks.ts"],
     // Integration tests share one SQLite file, so test files must not run in parallel.
     fileParallelism: false,
     coverage: {

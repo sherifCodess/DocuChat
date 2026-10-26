@@ -35,6 +35,6 @@ describe("default role on registration", () => {
       .post("/api/v1/documents")
       .set(bearer(login.body.accessToken))
       .send({ title: "First", content: "Hello" });
-    expect(create.status).toBe(201);
+    expect(create.status).toBe(202);
   });
 });

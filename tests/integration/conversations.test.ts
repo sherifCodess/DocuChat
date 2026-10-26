@@ -30,7 +30,7 @@ describe("conversations", () => {
       .post("/api/v1/documents")
       .set(bearer(owner))
       .send({ title: "Doc", content: "Hello" });
-    const linked = await createConversation(owner, { documentId: doc.body.data.id });
+    const linked = await createConversation(owner, { documentId: doc.body.data.document.id });
     expect(linked.status).toBe(201);
     const unknown = await createConversation(owner, { documentId: UNKNOWN_ID });
     expect(unknown.status).toBe(422);

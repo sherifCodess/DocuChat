@@ -88,7 +88,7 @@ describe("document list: fields, sorting, filtering", () => {
 
 describe("document delete: soft delete and audit trail", () => {
   it("keeps the row and records who deleted it", async () => {
-    const id = (await createDoc(owner, "To delete")).body.data.id;
+    const id = (await createDoc(owner, "To delete")).body.data.document.id;
     const del = await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));
     expect(del.status).toBe(200);
 
@@ -99,7 +99,7 @@ describe("document delete: soft delete and audit trail", () => {
   });
 
   it("logs document creation and deletion to the audit trail", async () => {
-    const id = (await createDoc(owner, "Audited")).body.data.id;
+    const id = (await createDoc(owner, "Audited")).body.data.document.id;
     await request(app).delete(`/api/v1/documents/${id}`).set(bearer(admin));
 
     const created = await waitForLog("document_created");

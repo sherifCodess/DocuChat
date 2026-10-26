@@ -6,6 +6,7 @@ import { logger } from "./lib/logger";
 import "./events/auth.events"; // registers the event listeners (Day 3)
 import "./events/admin.events";
 import "./events/document.events";
+import "./queues/document.worker"; // starts the document processing worker (Day 3)
 import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";

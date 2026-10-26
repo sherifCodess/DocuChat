@@ -3,15 +3,26 @@ import { prisma } from "../lib/prisma";
 import { appEvents } from "../lib/events";
 import { NotFoundError } from "../lib/errors";
 import { DOC_EVENTS } from "../events/document.events";
+import { queueDocumentForProcessing } from "../queues/document.queue";
 import { getUserPermissions } from "./user.service";
 
 export async function createDocument(
   userId: string,
   data: { title: string; content: string },
 ) {
+  // Create the document with pending status
   const doc = await prisma.document.create({
-    data: { userId, title: data.title, content: data.content },
+    data: {
+      userId,
+      title: data.title,
+      filename: data.title.toLowerCase().replace(/\s+/g, "-"),
+      content: data.content,
+      status: "pending",
+    },
   });
+
+  // Queue for background processing
+  const jobId = await queueDocumentForProcessing(doc.id, userId);
 
   appEvents.emit(DOC_EVENTS.CREATED, {
     userId,
@@ -19,7 +30,8 @@ export async function createDocument(
     title: doc.title,
   });
 
-  return doc;
+  // The route answers 202 Accepted: the document exists but isn't ready yet
+  return { document: doc, jobId };
 }
 
 interface ListDocumentsOptions {

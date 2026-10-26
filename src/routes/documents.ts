@@ -114,8 +114,8 @@ router.get(
  *               content:
  *                 type: string
  *     responses:
- *       201:
- *         description: Document created
+ *       202:
+ *         description: Document accepted and queued for background processing
  *       400:
  *         description: Validation error
  *       401:
@@ -129,8 +129,9 @@ router.post(
   validate(createDocumentSchema),
   async (req, res, next) => {
     try {
-      const doc = await documentService.createDocument(req.user!.id, req.body);
-      res.status(201).json({ success: true, data: doc });
+      const result = await documentService.createDocument(req.user!.id, req.body);
+      // 202 Accepted: the document exists but is not ready yet
+      res.status(202).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
