@@ -224,4 +224,48 @@ router.delete(
   },
 );
 
+/**
+ * @swagger
+ * /documents/{id}/processing-status:
+ *   get:
+ *     summary: Get a document's processing status and progress
+ *     description: Requires the documents:read permission. Owner only. Progress is a percentage while a job is waiting or running, otherwise null.
+ *     tags: [Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: status, error and progress
+ *       400:
+ *         description: Invalid document ID
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Missing the documents:read permission
+ *       404:
+ *         description: Not found, deleted, or not owned by the user
+ */
+router.get(
+  "/:id/processing-status",
+  requirePermission("documents:read"),
+  validate(documentParamsSchema),
+  async (req, res, next) => {
+    try {
+      const data = await documentService.getProcessingStatus(
+        req.user!.id,
+        req.params.id as string,
+      );
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 export default router;

@@ -18,3 +18,9 @@ vi.mock("../../src/queues/dead-letter.queue", () => ({
 vi.mock("../../src/queues/document.worker", () => ({
   worker: { on: vi.fn(), close: vi.fn() },
 }));
+
+vi.mock("../../src/config/bull-board", () => ({
+  bullBoardAdapter: {
+    getRouter: () => (_req: any, res: any) => res.status(200).send("bull-board"),
+  },
+}));

@@ -29,6 +29,8 @@
     "vitest": "^5.0.4"
   },
   "dependencies": {
+    "@bull-board/api": "^9.10.5",
+    "@bull-board/express": "^9.10.5",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",

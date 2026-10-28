@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { appEvents } from "../lib/events";
 import { NotFoundError } from "../lib/errors";
 import { DOC_EVENTS } from "../events/document.events";
-import { queueDocumentForProcessing } from "../queues/document.queue";
+import { queueDocumentForProcessing, documentQueue } from "../queues/document.queue";
 import { getUserPermissions } from "./user.service";
 
 export async function createDocument(
@@ -142,4 +142,26 @@ export async function deleteDocument(documentId: string, deletedBy: string) {
     documentId,
     title: doc.title,
   });
+}
+
+// Owner only (the doc's rule). Status and error come from the database;
+// progress comes from the job while it is waiting or running, otherwise null.
+export async function getProcessingStatus(userId: string, id: string) {
+  const doc = await prisma.document.findFirst({
+    where: { id, deletedAt: null },
+    select: { id: true, status: true, error: true, userId: true },
+  });
+  if (!doc || doc.userId !== userId) {
+    throw new NotFoundError("Document not found");
+  }
+
+  // Try to find the active job for this document
+  const jobs = await documentQueue.getJobs(["active", "waiting"]);
+  const activeJob = jobs.find((j) => j.data.documentId === id);
+
+  return {
+    status: doc.status,
+    error: doc.error,
+    progress: activeJob ? await activeJob.progress : null,
+  };
 }

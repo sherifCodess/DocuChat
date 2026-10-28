@@ -11,6 +11,9 @@ git clone <repo-url>
 cd docu_CHAT
 npm install
 
+# Redis (document processing queue): start it with Docker
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
 # Environment: copy the template, then fill in the two JWT secrets
 cp .env.example .env
 # Generate each secret with:
@@ -37,6 +40,8 @@ npm run dev
 
 Tests use a separate database (`test.db`) so development data is never touched. The test setup refuses to run against any other database.
 
+Most tests use a fake queue. The tests in `tests/queue` use the real queue and need Redis running (`docker start redis`) and no other worker attached (stop `npm run dev`).
+
 ```bash
 # 1. Create .env.test (throwaway values, safe to share)
 cat > .env.test << 'EOT'
@@ -58,6 +63,7 @@ npm test
 - Health check: `GET /health`
 - Interactive docs (Swagger UI): `/api-docs`
 - Raw OpenAPI spec: `/api-docs.json`
+- Queue dashboard (Bull Board): `/admin/queues` (open in development, requires the `roles:manage` permission in production)
 
 All endpoints are under `/api/v1`. Every endpoint except `/auth/*` requires `Authorization: Bearer <accessToken>`.
 

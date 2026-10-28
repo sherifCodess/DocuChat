@@ -7,6 +7,9 @@ import "./events/auth.events"; // registers the event listeners (Day 3)
 import "./events/admin.events";
 import "./events/document.events";
 import "./queues/document.worker"; // starts the document processing worker (Day 3)
+import { bullBoardAdapter } from "./config/bull-board";
+import { authenticate } from "./middleware/auth";
+import { requirePermission } from "./middleware/authorize";
 import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";
@@ -54,6 +57,13 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/conversations", conversationRoutes);
 app.use("/api/v1/admin", adminRoutes);
+
+// Queue dashboard (Day 3): open in development, protected in production, as the doc advises
+if (config.NODE_ENV === "production") {
+  app.use("/admin/queues", authenticate, requirePermission("roles:manage"), bullBoardAdapter.getRouter());
+} else {
+  app.use("/admin/queues", bullBoardAdapter.getRouter());
+}
 
 // When v2 exists:
 // app.use('/api/v2/documents', documentRoutesV2);

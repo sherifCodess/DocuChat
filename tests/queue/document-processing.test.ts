@@ -6,6 +6,7 @@ vi.unmock("../../src/queues/connection");
 vi.unmock("../../src/queues/document.queue");
 vi.unmock("../../src/queues/dead-letter.queue");
 vi.unmock("../../src/queues/document.worker");
+vi.unmock("../../src/config/bull-board");
 
 // Simulated failure for the retry tests: any document containing the marker makes chunking throw.
 vi.mock("../../src/lib/chunker", async (importOriginal) => {
@@ -24,6 +25,9 @@ import { redisConnection } from "../../src/queues/connection";
 import { documentQueue, queueDocumentForProcessing } from "../../src/queues/document.queue";
 import { deadLetterQueue } from "../../src/queues/dead-letter.queue";
 import { worker } from "../../src/queues/document.worker";
+import express from "express";
+import request from "supertest";
+import { bullBoardAdapter } from "../../src/config/bull-board";
 import { resetDatabase, createTestUser } from "../helpers/setup";
 
 let userId: string;
@@ -169,4 +173,14 @@ describe("document processing worker (real Redis)", () => {
     expect(await prisma.chunk.count({ where: { documentId: doc.id } })).toBe(0);
     await dlq.remove();
   }, 30000);
+});
+
+describe("Bull Board (real queues)", () => {
+  it("serves the dashboard with the real queues attached", async () => {
+    const board = express();
+    board.use("/admin/queues", bullBoardAdapter.getRouter());
+    const res = await request(board).get("/admin/queues");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/html");
+  });
 });
