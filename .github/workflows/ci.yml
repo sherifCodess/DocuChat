@@ -24,6 +24,8 @@ jobs:
       JWT_ACCESS_SECRET: ci-access-secret-at-least-thirty-two-characters
       JWT_REFRESH_SECRET: ci-refresh-secret-at-least-thirty-two-characters
       NODE_ENV: test
+      OPENAI_API_KEY: ci-placeholder-key
+      EXAMPLE_WEBHOOK_SECRET: ci-webhook-secret-for-tests-only
 
     steps:
       - uses: actions/checkout@v4

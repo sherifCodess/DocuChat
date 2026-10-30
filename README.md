@@ -19,6 +19,8 @@ cp .env.example .env
 # Generate each secret with:
 # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 # JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different values.
+# EXAMPLE_WEBHOOK_SECRET: any long random string (verifies incoming webhooks).
+# OPENAI_API_KEY: a real key, or a placeholder until Week 4.
 
 # Create the database
 npx prisma migrate dev
@@ -63,6 +65,7 @@ npm test
 - Health check: `GET /health`
 - Interactive docs (Swagger UI): `/api-docs`
 - Raw OpenAPI spec: `/api-docs.json`
+- Webhook receiver: `POST /webhooks/example` (HMAC SHA-256 signature in the `X-Webhook-Signature` header; no login, not versioned)
 - Queue dashboard (Bull Board): `/admin/queues` (open in development, requires the `roles:manage` permission in production)
 
 All endpoints are under `/api/v1`. Every endpoint except `/auth/*` requires `Authorization: Bearer <accessToken>`.

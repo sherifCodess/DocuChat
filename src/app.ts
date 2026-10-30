@@ -14,6 +14,7 @@ import authRoutes from "./routes/auth";
 import documentRoutes from "./routes/documents";
 import conversationRoutes from "./routes/conversation";
 import adminRoutes from "./routes/admin";
+import webhookRoutes from "./routes/webhooks";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -23,6 +24,18 @@ const app = express();
 // === MIDDLEWARE (runs on every request) ===
 app.use(helmet());
 app.use(cors());
+// Webhook routes need the RAW request body to verify signatures (Day 4).
+// It must be captured BEFORE express.json() parses and discards the original bytes.
+app.use(
+  "/webhooks",
+  express.raw({
+    type: "application/json",
+    verify: (req: any, _res: any, buf: Buffer) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
 app.use(express.json());
 
 // === REQUEST LOGGING ===
@@ -57,6 +70,9 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/conversations", conversationRoutes);
 app.use("/api/v1/admin", adminRoutes);
+
+// Webhooks (Day 4): signed by the provider, no login. The raw body was captured above.
+app.use("/webhooks", webhookRoutes);
 
 // Queue dashboard (Day 3): open in development, protected in production, as the doc advises
 if (config.NODE_ENV === "production") {

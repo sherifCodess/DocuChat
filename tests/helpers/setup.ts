@@ -14,6 +14,7 @@ export async function ensureRbac() {
 export async function resetDatabase() {
   await ensureRbac();
   // Delete in an order that respects foreign key constraints
+  await prisma.webhookEvent.deleteMany();
   await prisma.message.deleteMany();
   await prisma.usageLog.deleteMany();
   await prisma.conversation.deleteMany();

@@ -27,6 +27,8 @@ const envSchema = z.object({
 
   // OpenAI (needed from Week 4 onward)
   OPENAI_API_KEY: z.string().optional(),
+  // Webhooks (Day 4)
+  EXAMPLE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
   // Redis (needed from Week 3 onward)
   REDIS_HOST: z.string().default("localhost"),
