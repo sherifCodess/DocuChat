@@ -53,32 +53,28 @@ describe("HTTP client interceptors", () => {
     const error = vi.spyOn(logger, "error");
     replies = [{ status: 404, body: { error: "nope" } }];
     await expect(get()).rejects.toBeInstanceOf(AxiosError);
-    expect(error).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "openai:error_response", status: 404 }),
-    );
+    expect(error).toHaveBeenCalledWith("openai:error_response", expect.objectContaining({ status: 404 }));
   });
 
   it("logs a different event when no response arrives at all", async () => {
     const error = vi.spyOn(logger, "error");
     openaiClient.defaults.baseURL = "http://127.0.0.1:1"; // nothing listens on port 1
     await expect(get()).rejects.toBeInstanceOf(AxiosError);
-    expect(error).toHaveBeenCalledWith(expect.objectContaining({ event: "openai:no_response" }));
+    expect(error).toHaveBeenCalledWith("openai:no_response", expect.anything());
   });
 
   it("warns when the rate limit budget is running low", async () => {
     const warn = vi.spyOn(logger, "warn");
     replies = [{ status: 200, headers: { "x-ratelimit-remaining-requests": "10" } }];
     await get();
-    expect(warn).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "openai:rate_limit_low", remaining: 10 }),
-    );
+    expect(warn).toHaveBeenCalledWith("openai:rate_limit_low", expect.objectContaining({ remaining: 10 }));
   });
 
   it("stays quiet when there is plenty of budget left", async () => {
     const warn = vi.spyOn(logger, "warn");
     replies = [{ status: 200, headers: { "x-ratelimit-remaining-requests": "3490" } }];
     await get();
-    expect(warn).not.toHaveBeenCalledWith(expect.objectContaining({ event: "openai:rate_limit_low" }));
+    expect(warn).not.toHaveBeenCalledWith("openai:rate_limit_low", expect.anything());
   });
 });
 
@@ -139,7 +135,7 @@ describe("withRetry", () => {
     const warn = vi.spyOn(logger, "warn");
     openaiClient.defaults.baseURL = "http://127.0.0.1:1";
     await expect(withRetry(get, fast)).rejects.toBeInstanceOf(AxiosError);
-    const retries = warn.mock.calls.filter((c: any[]) => c[0]?.event === "http:retry");
+    const retries = warn.mock.calls.filter((c: any[]) => c[0] === "http:retry");
     expect(retries).toHaveLength(2);
   });
 });
@@ -169,7 +165,7 @@ describe("circuit breaker", () => {
       );
     }
     expect(openaiBreaker.opened).toBe(true);
-    expect(warn).toHaveBeenCalledWith(expect.objectContaining({ event: "openai:breaker_open" }));
+    expect(warn).toHaveBeenCalledWith("openai:breaker_open", expect.anything());
 
     const hitsBefore = hits;
     const start = Date.now();

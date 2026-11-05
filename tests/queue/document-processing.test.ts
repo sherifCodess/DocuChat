@@ -50,10 +50,12 @@ const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).joi
 const createDoc = (title: string, content: string, extra: object = {}) =>
   prisma.document.create({ data: { userId, title, filename: title, content, ...extra } });
 
+// Re-read the job once it is completed: a copy read earlier can still show the old progress and no return value.
 const jobCompleted = (jobId: string) =>
   waitFor(async () => {
     const job = await documentQueue.getJob(jobId);
-    return job && (await job.isCompleted()) ? job : null;
+    if (!job || !(await job.isCompleted())) return null;
+    return (await documentQueue.getJob(jobId)) ?? null;
   });
 
 const deadLetterFor = (documentId: string) =>

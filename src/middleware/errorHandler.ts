@@ -28,10 +28,9 @@ export function errorHandler(
 ) {
   // Operational error: we created this intentionally. Expected, so warn level.
   if (err instanceof AppError && err.isOperational) {
-    logger.warn({
-      event: "error:operational",
+    logger.warn("error:operational", {
       code: err.code,
-      message: err.message,
+      detail: err.message,
       details: err.details,
     });
     return res.status(err.statusCode).json({
@@ -47,8 +46,7 @@ export function errorHandler(
   // Body parser error: the client sent something we can't read. Their mistake, warn level.
   const parserError = bodyParserErrors[(err as any).type];
   if (parserError) {
-    logger.warn({
-      event: "error:body_parser",
+    logger.warn("error:body_parser", {
       type: (err as any).type,
       status: parserError.status,
     });
@@ -59,7 +57,7 @@ export function errorHandler(
   }
 
   // Programming error: this is a bug. Full stack goes to the logs, never to the client.
-  logger.error({ event: "error:unhandled", err });
+  logger.error("error:unhandled", { error: err.message, stack: err.stack });
   return res.status(500).json({
     success: false,
     error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" },

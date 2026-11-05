@@ -97,7 +97,7 @@ describe("webhook processing and idempotency", () => {
     expect(second.body).toEqual({ received: true, duplicate: true });
 
     expect(await prisma.webhookEvent.count({ where: { id: "evt_11" } })).toBe(1);
-    const handled = info.mock.calls.filter((c: any[]) => c[0]?.event === "webhook:unhandled_event");
+    const handled = info.mock.calls.filter((c: any[]) => c[0] === "webhook:unhandled_event");
     expect(handled).toHaveLength(1);
   });
 
@@ -113,15 +113,16 @@ describe("webhook processing and idempotency", () => {
 
   it("leaves processedAt empty when processing fails", async () => {
     const error = vi.spyOn(logger, "error");
-    vi.spyOn(logger, "info").mockImplementation((obj: any) => {
-      if (obj?.event === "webhook:unhandled_event") throw new Error("boom");
+    vi.spyOn(logger, "info").mockImplementation((message: any) => {
+      if (message === "webhook:unhandled_event") throw new Error("boom");
+      return logger;
     });
 
     const body = event("evt_13");
     expect((await post(body, sign(body))).status).toBe(202);
 
     await waitFor(async () =>
-      error.mock.calls.some((c: any[]) => c[0]?.event === "webhook:processing_failed"),
+      error.mock.calls.some((c: any[]) => c[0] === "webhook:processing_failed"),
     );
     const row = await prisma.webhookEvent.findUniqueOrThrow({ where: { id: "evt_13" } });
     expect(row.processedAt).toBeNull();

@@ -11,8 +11,7 @@ const worker = new Worker(
   "document-processing",
   async (job: Job) => {
     const { documentId, userId } = job.data;
-    logger.info({
-      event: "queue:job_started",
+    logger.info("queue:job_started", {
       jobId: job.id,
       documentId,
       attempt: job.attemptsMade + 1,
@@ -87,16 +86,14 @@ const worker = new Worker(
 
 // Event listeners for logging
 worker.on("completed", (job) => {
-  logger.info({
-    event: "queue:job_completed",
+  logger.info("queue:job_completed", {
     jobId: job.id,
     chunks: job.returnvalue?.chunks,
   });
 });
 
 worker.on("failed", async (job, error) => {
-  logger.error({
-    event: "queue:job_failed",
+  logger.error("queue:job_failed", {
     jobId: job?.id,
     attempt: job?.attemptsMade,
     error: error.message,
@@ -105,7 +102,9 @@ worker.on("failed", async (job, error) => {
 
   // Check if all attempts exhausted
   if (job.attemptsMade >= (job.opts.attempts ?? 3)) {
-    logger.error({ event: "queue:job_dead_lettered", jobId: job.id });
+    logger.error("queue:job_dead_lettered", {
+      jobId: job.id,
+    });
     try {
       await deadLetterQueue.add("failed-document", {
         originalJobId: job.id,
@@ -116,8 +115,7 @@ worker.on("failed", async (job, error) => {
         attempts: job.attemptsMade,
       });
     } catch (dlqError) {
-      logger.error({
-        event: "queue:dead_letter_failed",
+      logger.error("queue:dead_letter_failed", {
         jobId: job.id,
         error: (dlqError as Error).message,
       });
@@ -126,7 +124,9 @@ worker.on("failed", async (job, error) => {
 });
 
 worker.on("error", (error) => {
-  logger.error({ event: "queue:worker_error", error: error.message });
+  logger.error("queue:worker_error", {
+    error: error.message,
+  });
 });
 
 export { worker };

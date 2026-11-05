@@ -61,8 +61,7 @@ router.post(
           data: { processedAt: new Date() },
         });
       } catch (error) {
-        logger.error({
-          event: "webhook:processing_failed",
+        logger.error("webhook:processing_failed", {
           webhookId: event.id,
           error: (error as Error).message,
         });
@@ -81,7 +80,9 @@ async function processWebhookEvent(event: any) {
       // Queue document processing
       break;
     default:
-      logger.info({ event: "webhook:unhandled_event", type: event.type });
+      logger.info("webhook:unhandled_event", {
+        type: event.type,
+      });
   }
 }
 

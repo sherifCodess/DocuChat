@@ -1,5 +1,6 @@
 import { appEvents } from "../lib/events";
 import { prisma } from "../lib/prisma";
+import { logger } from "../lib/logger";
 
 appEvents.on("admin:role-assigned", async (data) => {
   try {
@@ -17,7 +18,7 @@ appEvents.on("admin:role-assigned", async (data) => {
       },
     });
   } catch (error) {
-    console.error("Failed to log role assignment:", error);
+    logger.error("Failed to log role assignment", { error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -37,6 +38,6 @@ appEvents.on("admin:role-revoked", async (data) => {
       },
     });
   } catch (error) {
-    console.error("Failed to log role revocation:", error);
+    logger.error("Failed to log role revocation", { error: error instanceof Error ? error.message : String(error) });
   }
 });

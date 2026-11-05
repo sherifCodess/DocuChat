@@ -35,11 +35,17 @@ openaiBreaker.fallback(() => {
 
 // Visibility into state changes
 openaiBreaker.on("open", () =>
-  logger.warn({ event: "openai:breaker_open", message: "requests will fail fast" }),
+  logger.warn("openai:breaker_open", {
+    detail: "requests will fail fast",
+  }),
 );
 openaiBreaker.on("halfOpen", () =>
-  logger.warn({ event: "openai:breaker_half_open", message: "testing recovery" }),
+  logger.warn("openai:breaker_half_open", {
+    detail: "testing recovery",
+  }),
 );
 openaiBreaker.on("close", () =>
-  logger.info({ event: "openai:breaker_closed", message: "normal operation" }),
+  logger.info("openai:breaker_closed", {
+    detail: "normal operation",
+  }),
 );

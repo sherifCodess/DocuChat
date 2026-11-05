@@ -2,7 +2,7 @@ import { config } from "./lib/config"; // must stay first: loads and validates .
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { logger } from "./lib/logger";
+import { requestLogger } from "./middleware/requestLogger";
 import "./events/auth.events"; // registers the event listeners (Day 3)
 import "./events/admin.events";
 import "./events/document.events";
@@ -38,15 +38,8 @@ app.use(
 
 app.use(express.json());
 
-// === REQUEST LOGGING ===
-app.use((req, res, next) => {
-  logger.info({
-    method: req.method,
-    url: req.url,
-    ip: req.ip,
-  });
-  next();
-});
+// === REQUEST LOGGING (correlation id on every request) ===
+app.use(requestLogger);
 
 // === HEALTH CHECK (no versioning needed) ===
 app.get("/health", (req, res) => {

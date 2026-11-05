@@ -43,8 +43,7 @@ export async function withRetry<T>(
         ? retryAfterSeconds * 1000
         : baseDelayMs * Math.pow(2, attempt - 1);
 
-      logger.warn({
-        event: "http:retry",
+      logger.warn("http:retry", {
         attempt,
         delayMs,
         error: error.message,
