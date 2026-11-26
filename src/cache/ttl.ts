@@ -1,0 +1,7 @@
+export const CACHE_TTL = {
+  USER_PERMISSIONS: 5 * 60,
+  DOCUMENT_METADATA: 10 * 60,
+  CONVERSATION_LIST: 2 * 60,
+  EMBEDDINGS: 7 * 24 * 60 * 60,
+  RAG_RESULT: 60 * 60,
+} as const;

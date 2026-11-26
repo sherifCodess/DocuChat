@@ -1,5 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError, NotFoundError } from "../lib/errors";
+import { cacheDelPattern, cacheGetOrSet } from "../cache/cache";
+import { CACHE_TTL } from "../cache/ttl";
 
 const DEFAULT_TITLE = "New conversation";
 
@@ -12,9 +14,11 @@ export async function listConversations(
   options: { page: number; limit: number },
 ) {
   const { page, limit } = options;
+  const cacheKey = `conversations:${userId}:${page}:${limit}`;
 
-  // The list and the count run in parallel. The latest message comes in the same query: no N+1.
-  const [conversations, total] = await Promise.all([
+  return cacheGetOrSet(cacheKey, CACHE_TTL.CONVERSATION_LIST, async () => {
+    // The list and the count run in parallel. The latest message comes in the same query: no N+1.
+    const [conversations, total] = await Promise.all([
     prisma.conversation.findMany({
       where: { userId },
       orderBy: { updatedAt: "desc" },
@@ -39,20 +43,21 @@ export async function listConversations(
     prisma.conversation.count({ where: { userId } }),
   ]);
 
-  return {
-    data: conversations.map((conv) => ({
-      id: conv.id,
-      title: conv.title,
-      messageCount: conv._count.messages,
-      lastMessage: conv.messages[0] || null,
-      updatedAt: conv.updatedAt,
-    })),
-    meta: {
-      page,
-      limit,
-      total,
-    },
-  };
+    return {
+      data: conversations.map((conv) => ({
+        id: conv.id,
+        title: conv.title,
+        messageCount: conv._count.messages,
+        lastMessage: conv.messages[0] || null,
+        updatedAt: conv.updatedAt,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+      },
+    };
+  });
 }
 
 export async function createConversation(
@@ -68,13 +73,16 @@ export async function createConversation(
     if (!doc) throw documentNotFound();
   }
 
-  return prisma.conversation.create({
+  const conversation = await prisma.conversation.create({
     data: {
       userId,
       documentId: data.documentId,
       title: data.title?.trim() || DEFAULT_TITLE,
     },
   });
+
+  await cacheDelPattern(`conversations:${userId}:*`);
+  return conversation;
 }
 
 export async function listMessages(userId: string, conversationId: string) {
@@ -97,7 +105,7 @@ export async function sendMessage(
   conversationId: string,
   data: { content: string; documentId?: string },
 ) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Verify the conversation belongs to this user
     const conversation = await tx.conversation.findFirst({
       where: { id: conversationId, userId },
@@ -158,4 +166,8 @@ export async function sendMessage(
 
     return { userMessage, assistantMessage };
   });
+
+  // Invalidate only after the transaction has committed successfully.
+  await cacheDelPattern(`conversations:${userId}:*`);
+  return result;
 }

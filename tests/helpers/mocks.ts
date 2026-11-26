@@ -7,12 +7,20 @@ vi.mock("../../src/queues/connection", () => ({
 }));
 
 vi.mock("../../src/queues/document.queue", () => ({
-  documentQueue: { name: "document-processing", add: vi.fn(), getJobs: vi.fn().mockResolvedValue([]) },
+  documentQueue: {
+    name: "document-processing",
+    add: vi.fn(),
+    getJobs: vi.fn().mockResolvedValue([]),
+  },
   queueDocumentForProcessing: vi.fn().mockResolvedValue("test-job-id"),
 }));
 
 vi.mock("../../src/queues/dead-letter.queue", () => ({
-  deadLetterQueue: { name: "dead-letter", add: vi.fn(), getJobs: vi.fn().mockResolvedValue([]) },
+  deadLetterQueue: {
+    name: "dead-letter",
+    add: vi.fn(),
+    getJobs: vi.fn().mockResolvedValue([]),
+  },
 }));
 
 vi.mock("../../src/queues/document.worker", () => ({
@@ -21,6 +29,18 @@ vi.mock("../../src/queues/document.worker", () => ({
 
 vi.mock("../../src/config/bull-board", () => ({
   bullBoardAdapter: {
-    getRouter: () => (_req: any, res: any) => res.status(200).send("bull-board"),
+    getRouter: () => (_req: any, res: any) =>
+      res.status(200).send("bull-board"),
+  },
+}));
+
+vi.mock("../../src/cache/connection", () => ({
+  cacheRedis: {
+    on: vi.fn(),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue("OK"),
+    del: vi.fn().mockResolvedValue(1),
+    scan: vi.fn().mockResolvedValue(["0", []]),
+    eval: vi.fn().mockResolvedValue(1),
   },
 }));

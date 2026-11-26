@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { sendMessage } from "../conversation.service";
 import { prisma } from "../../lib/prisma";
 import { NotFoundError } from "../../lib/errors";
+import { cacheRedis } from "../../cache/connection";
 
 // tx is what the transaction callback receives. Everything else on prisma must stay untouched.
 vi.mock("../../lib/prisma", () => {
@@ -55,6 +56,13 @@ describe("conversation.service.sendMessage", () => {
     expect(prisma.message.create).not.toHaveBeenCalled();
     expect(prisma.usageLog.create).not.toHaveBeenCalled();
     expect(prisma.document.findFirst).not.toHaveBeenCalled();
+    expect(cacheRedis.scan).toHaveBeenCalledWith(
+      "0",
+      "MATCH",
+      "docuchat:conversations:u1:*",
+      "COUNT",
+      100,
+    );
   });
 
   it("lets a failing step propagate so the transaction rolls back", async () => {

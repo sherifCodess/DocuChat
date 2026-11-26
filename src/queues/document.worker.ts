@@ -6,6 +6,7 @@ import { appEvents } from "../lib/events";
 import { logger } from "../lib/logger";
 import { splitIntoChunks, estimateTokens } from "../lib/chunker";
 import { DOC_EVENTS } from "../events/document.events";
+import { cacheDel } from "../cache/cache";
 
 const worker = new Worker(
   "document-processing",
@@ -28,6 +29,7 @@ const worker = new Worker(
         where: { id: documentId },
         data: { status: "processing" },
       });
+      await cacheDel(`doc:${documentId}`);
 
       await job.updateProgress(10);
 
@@ -54,6 +56,7 @@ const worker = new Worker(
           data: { status: "ready", chunkCount: chunks.length },
         });
       });
+      await cacheDel(`doc:${documentId}`);
       await job.updateProgress(100);
 
       // Emit event for audit/notification
@@ -74,6 +77,7 @@ const worker = new Worker(
             error: (error as Error).message,
           },
         });
+        await cacheDel(`doc:${documentId}`);
       }
       throw error; // Re-throw so BullMQ retries
     }

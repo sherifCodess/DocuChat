@@ -3,6 +3,8 @@ import * as documentService from "../services/document.service";
 import { authenticate } from "../middleware/auth";
 import { requirePermission } from "../middleware/authorize";
 import { validate } from "../middleware/validate";
+import { etag } from "../middleware/etag";
+import { privateNoCache } from "../middleware/cacheControl";
 import {
   createDocumentSchema,
   listDocumentsSchema,
@@ -11,7 +13,7 @@ import {
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, privateNoCache);
 
 /**
  * @swagger
@@ -169,6 +171,7 @@ router.get(
   "/:id",
   requirePermission("documents:read"),
   validate(documentParamsSchema),
+  etag,
   async (req, res, next) => {
     try {
       const doc = await documentService.getDocument(

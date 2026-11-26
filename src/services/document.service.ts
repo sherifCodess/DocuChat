@@ -5,6 +5,8 @@ import { NotFoundError } from "../lib/errors";
 import { DOC_EVENTS } from "../events/document.events";
 import { queueDocumentForProcessing, documentQueue } from "../queues/document.queue";
 import { getUserPermissions } from "./user.service";
+import { cacheDel, cacheGetOrSet } from "../cache/cache";
+import { CACHE_TTL } from "../cache/ttl";
 
 export async function createDocument(
   userId: string,
@@ -102,10 +104,27 @@ export async function listDocuments(
 
 // Not-yours and not-found look identical on purpose: a 403 would confirm the document exists.
 export async function getDocument(userId: string, id: string) {
-  const doc = await prisma.document.findFirst({
-    where: { id, deletedAt: null },
-  });
+  const doc = await cacheGetOrSet(
+    `doc:${id}`,
+    CACHE_TTL.DOCUMENT_METADATA,
+    () =>
+      prisma.document.findFirst({
+        where: { id, deletedAt: null },
+      }),
+  );
   if (!doc) {
+    throw new NotFoundError("Document not found");
+  }
+
+  // Redis metadata must never make a soft-deleted document visible.
+  // Verify its active state against the database on every read.
+  const activeDocument = await prisma.document.findFirst({
+    where: { id, deletedAt: null },
+    select: { id: true },
+  });
+
+  if (!activeDocument) {
+    await cacheDel(`doc:${id}`);
     throw new NotFoundError("Document not found");
   }
 
@@ -136,6 +155,9 @@ export async function deleteDocument(documentId: string, deletedBy: string) {
   if (result.count === 0) {
     throw new NotFoundError("Document not found");
   }
+
+  // Invalidate metadata after the database confirms the soft delete.
+  await cacheDel(`doc:${documentId}`);
 
   appEvents.emit(DOC_EVENTS.DELETED, {
     deletedBy,

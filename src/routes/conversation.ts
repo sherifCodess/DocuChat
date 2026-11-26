@@ -3,6 +3,8 @@ import * as conversationService from "../services/conversation.service";
 import { authenticate } from "../middleware/auth";
 import { requirePermission } from "../middleware/authorize";
 import { validate } from "../middleware/validate";
+import { etag } from "../middleware/etag";
+import { privateNoCache } from "../middleware/cacheControl";
 import {
   createConversationSchema,
   listConversationsSchema,
@@ -12,7 +14,7 @@ import {
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, privateNoCache);
 
 /**
  * @swagger
@@ -48,6 +50,7 @@ router.get(
   "/",
   requirePermission("conversations:read"),
   validate(listConversationsSchema),
+  etag,
   async (req, res, next) => {
     try {
       const { page, limit } = req.query as unknown as {

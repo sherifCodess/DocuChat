@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as authService from "../services/auth.service";
 import { validate } from "../middleware/validate";
+import { noStore } from "../middleware/cacheControl";
 import {
   registerSchema,
   loginSchema,
@@ -8,6 +9,8 @@ import {
 } from "../validators/auth.validator";
 
 const router = Router();
+
+router.use(noStore);
 
 /**
  * @swagger
